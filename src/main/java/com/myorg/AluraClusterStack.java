@@ -8,9 +8,9 @@ import software.amazon.awscdk.StackProps;
 import software.amazon.awscdk.services.ec2.Vpc;
 import software.amazon.awscdk.services.ecs.Cluster;
 public class AluraClusterStack extends Stack {
-    //código omitido
+    private  Cluster cluster;
 
-public AluraClusterStack(final Construct scope, final String id, final Vpc vpc) {
+    public AluraClusterStack(final Construct scope, final String id, final Vpc vpc) {
         this(scope, id, null, vpc);
     }
 
@@ -21,5 +21,9 @@ public AluraClusterStack(final Construct scope, final String id, final Vpc vpc) 
             .clusterName("cluster-alura")
             .vpc(vpc)
             .build();
+    }
+
+    public Cluster getCluster() {
+        return cluster;
     }
 }
