@@ -3,6 +3,8 @@ package com.myorg;
 import software.amazon.awscdk.Fn;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
+import software.amazon.awscdk.services.ecr.IRepository;
+import software.amazon.awscdk.services.ecr.Repository;
 import software.amazon.awscdk.services.ecs.Cluster;
 import software.amazon.awscdk.services.ecs.ContainerImage;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFargateService;
@@ -25,6 +27,7 @@ public class AluraServiceStack extends Stack {
         autenticacao.put("SPRING_DATASOURCE_USERNAME", "admin");
         autenticacao.put("SPRING_DATASOURCE_PASSWORD", Fn.importValue("pedidos-db-senha"));
 
+        IRepository iRepository = Repository.fromRepositoryName(this, "repositorio", "img-pedidos-ms");
 
         ApplicationLoadBalancedFargateService.Builder.create(this, "AluraService")
                 .serviceName("alura-service-ola")
@@ -35,7 +38,7 @@ public class AluraServiceStack extends Stack {
                 .assignPublicIp(true)
                 .taskImageOptions(
                         ApplicationLoadBalancedTaskImageOptions.builder()
-                                .image(ContainerImage.fromRegistry("jacquelineoliveira/pedidos-ms"))
+                                .image(ContainerImage.fromEcrRepository(iRepository))
                                 .containerPort(8080)
                                 .environment(autenticacao)
                                 .containerName("app_ola")
