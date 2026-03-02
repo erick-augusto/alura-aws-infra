@@ -1,15 +1,10 @@
 package com.myorg;
 
-import software.amazon.awscdk.Fn;
-import software.amazon.awscdk.RemovalPolicy;
-import software.amazon.awscdk.Stack;
-import software.amazon.awscdk.StackProps;
+import software.amazon.awscdk.*;
+import software.amazon.awscdk.services.applicationautoscaling.EnableScalingProps;
 import software.amazon.awscdk.services.ecr.IRepository;
 import software.amazon.awscdk.services.ecr.Repository;
-import software.amazon.awscdk.services.ecs.AwsLogDriverProps;
-import software.amazon.awscdk.services.ecs.Cluster;
-import software.amazon.awscdk.services.ecs.ContainerImage;
-import software.amazon.awscdk.services.ecs.LogDriver;
+import software.amazon.awscdk.services.ecs.*;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFargateService;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedTaskImageOptions;
 import software.amazon.awscdk.services.logs.LogGroup;
@@ -33,7 +28,7 @@ public class AluraServiceStack extends Stack {
 
         IRepository iRepository = Repository.fromRepositoryName(this, "repositorio", "img-pedidos-ms");
 
-        ApplicationLoadBalancedFargateService.Builder.create(this, "AluraService")
+        ApplicationLoadBalancedFargateService aluraService = ApplicationLoadBalancedFargateService.Builder.create(this, "AluraService")
                 .serviceName("alura-service-ola")
                 .cluster(cluster)           // Required
                 .cpu(512)                   // Default is 256
@@ -47,15 +42,31 @@ public class AluraServiceStack extends Stack {
                                 .containerName("app_ola")
                                 .environment(autenticacao)
                                 .logDriver(LogDriver.awsLogs(AwsLogDriverProps.builder()
-                                    .logGroup(LogGroup.Builder.create(this, "PedidosMsLogGroup")
-                                        .logGroupName("PedidosMsLog")
-                                        .removalPolicy(RemovalPolicy.DESTROY)
-                                        .build())
-                                    .streamPrefix("PedidosMS")
-                                    .build()))
+                                        .logGroup(LogGroup.Builder.create(this, "PedidosMsLogGroup")
+                                                .logGroupName("PedidosMsLog")
+                                                .removalPolicy(RemovalPolicy.DESTROY)
+                                                .build())
+                                        .streamPrefix("PedidosMS")
+                                        .build()))
                                 .build())
                 .memoryLimitMiB(1024)       // Default is 512
                 .publicLoadBalancer(true)   // Default is false
                 .build();
+
+        ScalableTaskCount scalableTarget = aluraService.getService().autoScaleTaskCount(EnableScalingProps.builder()
+                .minCapacity(1)
+                .maxCapacity(3)
+                .build());
+
+        scalableTarget.scaleOnCpuUtilization("CpuScaling", CpuUtilizationScalingProps.builder()
+                .targetUtilizationPercent(70)
+                .scaleInCooldown(Duration.minutes(3))
+                .scaleOutCooldown(Duration.minutes(2))
+                .build());
+        scalableTarget.scaleOnMemoryUtilization("MemoryScaling", MemoryUtilizationScalingProps.builder()
+                .targetUtilizationPercent(65)
+                .scaleInCooldown(Duration.minutes(3))
+                .scaleOutCooldown(Duration.minutes(2))
+                .build());
     }
 }
